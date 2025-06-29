@@ -124,7 +124,7 @@ A modern, full-stack stock market tracking application built with Next.js 15, AW
 ## 📱 Screenshots
 
 ### Dashboard Overview
-![Dashboard](https://via.placeholder.com/800x400/1f2937/ffffff?text=Dashboard+Overview)
+![Dashboard](./public/Dashboard.png)
 
 ### Portfolio Management
 ![Portfolio](https://via.placeholder.com/800x400/1f2937/ffffff?text=Portfolio+Management)
