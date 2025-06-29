@@ -132,25 +132,6 @@ A modern, full-stack stock market tracking application built with Next.js 15, AW
 ### Analytics & Charts
 ![Analytics](https://via.placeholder.com/800x400/1f2937/ffffff?text=Advanced+Analytics)
 
-### Project Structure
-
-\`\`\`
-stocktracker/
-├── app/                    # Next.js App Router pages
-│   ├── api/               # API routes
-│   ├── actions/           # Server actions
-│   └── (pages)/           # Application pages
-├── components/            # React components
-│   ├── ui/               # shadcn/ui components
-│   └── charts/           # Chart components
-├── lib/                  # Utility libraries
-│   ├── aws/              # AWS service integrations
-│   ├── external-apis/    # External API clients
-│   └── services/         # Business logic
-├── scripts/              # Setup and utility scripts
-└── hooks/                # Custom React hooks
-\`\`\`
-
 ## 🔧 Configuration
 
 ### Environment Variables
