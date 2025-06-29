@@ -132,27 +132,6 @@ A modern, full-stack stock market tracking application built with Next.js 15, AW
 ### Analytics & Charts
 ![Analytics](https://via.placeholder.com/800x400/1f2937/ffffff?text=Advanced+Analytics)
 
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `AWS_ACCESS_KEY_ID` | AWS access key | Yes (Production) |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | Yes (Production) |
-| `AWS_REGION` | AWS region | Yes (Production) |
-| `ALPHA_VANTAGE_API_KEY` | Alpha Vantage API key | Recommended |
-| `IEX_CLOUD_API_KEY` | IEX Cloud API token | Recommended |
-| `FINNHUB_API_KEY` | Finnhub API key | Optional |
-
-### AWS Resources
-
-The application creates the following AWS resources:
-
-- **DynamoDB Tables**: Stocks, Users, Transactions, Watchlists, StockHistory
-- **S3 Buckets**: Historical data storage, user exports
-- **Athena Database**: Analytics and complex queries
-
 ## 📊 Features Deep Dive
 
 ### Portfolio Management
