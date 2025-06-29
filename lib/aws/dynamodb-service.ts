@@ -73,6 +73,24 @@ const mockDatabase = {
       volume: 23456789,
       lastUpdated: new Date().toISOString(),
     },
+    NVDA: {
+      symbol: "NVDA",
+      name: "NVIDIA Corporation",
+      price: 875.28,
+      change: 15.42,
+      changePercent: 1.79,
+      volume: 45678901,
+      lastUpdated: new Date().toISOString(),
+    },
+    META: {
+      symbol: "META",
+      name: "Meta Platforms Inc.",
+      price: 485.32,
+      change: -8.15,
+      changePercent: -1.65,
+      volume: 18765432,
+      lastUpdated: new Date().toISOString(),
+    },
   },
   users: {
     "user-1": {
@@ -140,14 +158,15 @@ const mockDatabase = {
     GOOGL: generateMockHistoricalData(365, 142.56),
     AMZN: generateMockHistoricalData(365, 178.12),
     TSLA: generateMockHistoricalData(365, 248.42),
+    NVDA: generateMockHistoricalData(365, 875.28),
+    META: generateMockHistoricalData(365, 485.32),
   },
 }
 
 // Mock DynamoDB client setup
-// In a real implementation, this would be configured with AWS credentials
 const mockDynamoDBClient = {
   send: async (command: any) => {
-    console.log("DynamoDB command:", command.constructor.name)
+    console.log("🔄 DynamoDB command:", command.constructor.name)
 
     // Mock implementation for different command types
     if (command instanceof GetCommand) {
@@ -157,7 +176,12 @@ const mockDynamoDBClient = {
     } else if (command instanceof QueryCommand) {
       return mockQueryItems(command.input.TableName, command.input.KeyConditionExpression)
     } else if (command instanceof UpdateCommand) {
-      return mockUpdateItem(command.input.TableName, command.input.Key, command.input.UpdateExpression)
+      return mockUpdateItem(
+        command.input.TableName,
+        command.input.Key,
+        command.input.UpdateExpression,
+        command.input.ExpressionAttributeValues,
+      )
     }
 
     return { Item: null }
@@ -166,19 +190,23 @@ const mockDynamoDBClient = {
 
 // Mock DynamoDB operations
 function mockGetItem(tableName: string, key: any) {
-  console.log(`Getting item from ${tableName} with key:`, key)
+  console.log(`📖 Getting item from ${tableName} with key:`, key)
 
   if (tableName === "Stocks" && key.symbol) {
-    return { Item: mockDatabase.stocks[key.symbol as keyof typeof mockDatabase.stocks] || null }
+    const stock = mockDatabase.stocks[key.symbol as keyof typeof mockDatabase.stocks] || null
+    console.log(`📖 Found stock:`, stock)
+    return { Item: stock }
   } else if (tableName === "Users" && key.id) {
-    return { Item: mockDatabase.users[key.id as keyof typeof mockDatabase.users] || null }
+    const user = mockDatabase.users[key.id as keyof typeof mockDatabase.users] || null
+    console.log(`📖 Found user:`, user)
+    return { Item: user }
   }
 
   return { Item: null }
 }
 
 function mockPutItem(tableName: string, item: any) {
-  console.log(`Putting item in ${tableName}:`, item)
+  console.log(`💾 Putting item in ${tableName}:`, item)
 
   if (tableName === "Stocks" && item.symbol) {
     ;(mockDatabase.stocks as any)[item.symbol] = { ...item, lastUpdated: new Date().toISOString() }
@@ -198,7 +226,7 @@ function mockPutItem(tableName: string, item: any) {
 }
 
 function mockQueryItems(tableName: string, keyCondition: string) {
-  console.log(`Querying ${tableName} with condition: ${keyCondition}`)
+  console.log(`🔍 Querying ${tableName} with condition: ${keyCondition}`)
 
   if (tableName === "StockHistory" && keyCondition.includes("symbol")) {
     // Extract symbol from condition
@@ -219,13 +247,28 @@ function mockQueryItems(tableName: string, keyCondition: string) {
   return { Items: [] }
 }
 
-function mockUpdateItem(tableName: string, key: any, updateExpression: string) {
-  console.log(`Updating item in ${tableName} with key:`, key)
-  console.log(`Update expression: ${updateExpression}`)
+function mockUpdateItem(tableName: string, key: any, updateExpression: string, expressionAttributeValues?: any) {
+  console.log(`✏️ Updating item in ${tableName} with key:`, key)
+  console.log(`✏️ Update expression: ${updateExpression}`)
+  console.log(`✏️ Expression values:`, expressionAttributeValues)
 
   if (tableName === "Users" && key.id) {
-    // Very simplified update logic - in real implementation would parse the update expression
-    return { Attributes: (mockDatabase.users as any)[key.id] }
+    const userId = key.id
+    if ((mockDatabase.users as any)[userId]) {
+      // Parse the update expression and apply changes
+      if (updateExpression.includes("SET portfolio = :portfolio") && expressionAttributeValues?.[":portfolio"]) {
+        ;(mockDatabase.users as any)[userId].portfolio = expressionAttributeValues[":portfolio"]
+        console.log(`✅ Updated portfolio for user ${userId}:`, expressionAttributeValues[":portfolio"])
+      }
+
+      if (updateExpression.includes("SET watchlist = :watchlist") && expressionAttributeValues?.[":watchlist"]) {
+        ;(mockDatabase.users as any)[userId].watchlist = expressionAttributeValues[":watchlist"]
+        console.log(`✅ Updated watchlist for user ${userId}:`, expressionAttributeValues[":watchlist"])
+      }
+
+      // Return the updated user data
+      return { Attributes: (mockDatabase.users as any)[userId] }
+    }
   }
 
   return { Attributes: null }
@@ -233,13 +276,17 @@ function mockUpdateItem(tableName: string, key: any, updateExpression: string) {
 
 // Public API functions
 export async function getStockPrice(symbol: string) {
+  console.log(`🏷️ Getting stock price for: ${symbol}`)
+
   const command = new GetCommand({
     TableName: "Stocks",
     Key: { symbol },
   })
 
   const response = await mockDynamoDBClient.send(command)
-  return response.Item || { error: "Stock not found" }
+  const result = response.Item || { error: "Stock not found" }
+  console.log(`🏷️ Stock price result:`, result)
+  return result
 }
 
 export async function getStockHistory(symbol: string, timeframe: string) {
@@ -343,27 +390,29 @@ export async function getUserTransactions(userId: string) {
 }
 
 export async function recordUserTransaction(userId: string, transaction: any) {
+  console.log("💰 Recording transaction:", transaction)
+
   // Generate a transaction ID
   const transactionId = `tx-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
 
+  const transactionRecord = {
+    id: transactionId,
+    userId,
+    ...transaction,
+    date: new Date().toISOString(),
+  }
+
+  // Add transaction to mock database
   const command = new PutCommand({
     TableName: "Transactions",
-    Item: {
-      id: transactionId,
-      userId,
-      ...transaction,
-      date: new Date().toISOString(),
-    },
+    Item: transactionRecord,
   })
 
   await mockDynamoDBClient.send(command)
 
   // Update the user's portfolio based on the transaction
-  await updatePortfolioFromTransaction(userId, {
-    id: transactionId,
-    userId,
-    ...transaction,
-  })
+  console.log("🔄 About to update portfolio from transaction...")
+  await updatePortfolioFromTransaction(userId, transactionRecord)
 
   return {
     success: true,
@@ -373,6 +422,8 @@ export async function recordUserTransaction(userId: string, transaction: any) {
 }
 
 export async function getUserPortfolio(userId: string) {
+  console.log("📊 Getting portfolio for user:", userId)
+
   const command = new GetCommand({
     TableName: "Users",
     Key: { id: userId },
@@ -380,21 +431,29 @@ export async function getUserPortfolio(userId: string) {
 
   const response = await mockDynamoDBClient.send(command)
   if (!response.Item) {
+    console.log("❌ User not found")
     return { error: "User not found" }
   }
 
   const portfolio = response.Item.portfolio || []
+  console.log("📊 Raw portfolio data:", portfolio)
 
   // Enrich portfolio with current prices
   const enrichedPortfolio = await Promise.all(
     portfolio.map(async (position: any) => {
+      console.log(`📊 Processing position for ${position.symbol}`)
       const stockData = await getStockPrice(position.symbol)
+      if (stockData.error) {
+        console.log(`❌ Stock data not found for ${position.symbol}`)
+        return null
+      }
+
       const currentValue = stockData.price * position.shares
       const costBasis = position.avgPrice * position.shares
       const profit = currentValue - costBasis
       const profitPercent = (profit / costBasis) * 100
 
-      return {
+      const enrichedPosition = {
         ...position,
         currentPrice: stockData.price,
         currentValue,
@@ -402,13 +461,21 @@ export async function getUserPortfolio(userId: string) {
         profit,
         profitPercent,
       }
+
+      console.log(`📊 Enriched position for ${position.symbol}:`, enrichedPosition)
+      return enrichedPosition
     }),
   )
 
-  return enrichedPortfolio
+  const validPortfolio = enrichedPortfolio.filter((item) => item !== null)
+  console.log("📊 Final enriched portfolio:", validPortfolio)
+
+  return validPortfolio
 }
 
 export async function updateUserPortfolio(userId: string, portfolio: any[]) {
+  console.log("💾 Updating portfolio for user:", userId, "with data:", portfolio)
+
   const command = new UpdateCommand({
     TableName: "Users",
     Key: { id: userId },
@@ -419,7 +486,8 @@ export async function updateUserPortfolio(userId: string, portfolio: any[]) {
     ReturnValues: "ALL_NEW",
   })
 
-  await mockDynamoDBClient.send(command)
+  const response = await mockDynamoDBClient.send(command)
+  console.log("💾 Portfolio update response:", response)
 
   return {
     success: true,
@@ -430,45 +498,81 @@ export async function updateUserPortfolio(userId: string, portfolio: any[]) {
 
 // Helper function to update portfolio when a transaction is recorded
 async function updatePortfolioFromTransaction(userId: string, transaction: any) {
-  // Get current portfolio
-  const currentPortfolio = await getUserPortfolio(userId)
-  if ("error" in currentPortfolio) {
-    return
-  }
+  try {
+    console.log("🔄 Starting portfolio update from transaction:", transaction)
 
-  const portfolio = Array.isArray(currentPortfolio) ? currentPortfolio : []
+    // Get current user data using the API (not direct access)
+    const getUserCommand = new GetCommand({
+      TableName: "Users",
+      Key: { id: userId },
+    })
 
-  // Find if the stock already exists in portfolio
-  const existingPosition = portfolio.find((p: any) => p.symbol === transaction.symbol)
-
-  if (transaction.type === "BUY") {
-    if (existingPosition) {
-      // Update existing position
-      const totalShares = existingPosition.shares + transaction.shares
-      const totalCost = existingPosition.shares * existingPosition.avgPrice + transaction.shares * transaction.price
-      existingPosition.shares = totalShares
-      existingPosition.avgPrice = totalCost / totalShares
-    } else {
-      // Add new position
-      portfolio.push({
-        symbol: transaction.symbol,
-        shares: transaction.shares,
-        avgPrice: transaction.price,
-      })
+    const userResponse = await mockDynamoDBClient.send(getUserCommand)
+    if (!userResponse.Item) {
+      console.error("❌ User not found for portfolio update")
+      return
     }
-  } else if (transaction.type === "SELL") {
-    if (existingPosition) {
-      // Update existing position
-      existingPosition.shares -= transaction.shares
 
-      // Remove position if shares become 0
-      if (existingPosition.shares <= 0) {
-        const index = portfolio.indexOf(existingPosition)
-        portfolio.splice(index, 1)
+    const currentPortfolio = [...(userResponse.Item.portfolio || [])]
+    console.log("📊 Current portfolio before update:", currentPortfolio)
+
+    // Find if the stock already exists in portfolio
+    const existingPositionIndex = currentPortfolio.findIndex((p: any) => p.symbol === transaction.symbol)
+    console.log(`🔍 Existing position index for ${transaction.symbol}:`, existingPositionIndex)
+
+    if (transaction.type === "BUY") {
+      if (existingPositionIndex >= 0) {
+        // Update existing position
+        const existingPosition = currentPortfolio[existingPositionIndex]
+        console.log("📊 Updating existing position:", existingPosition)
+
+        const totalShares = existingPosition.shares + transaction.shares
+        const totalCost = existingPosition.shares * existingPosition.avgPrice + transaction.shares * transaction.price
+
+        currentPortfolio[existingPositionIndex] = {
+          symbol: transaction.symbol,
+          shares: totalShares,
+          avgPrice: Number.parseFloat((totalCost / totalShares).toFixed(2)),
+        }
+        console.log("✅ Updated existing position:", currentPortfolio[existingPositionIndex])
+      } else {
+        // Add new position
+        const newPosition = {
+          symbol: transaction.symbol,
+          shares: transaction.shares,
+          avgPrice: transaction.price,
+        }
+        currentPortfolio.push(newPosition)
+        console.log("✅ Added new position:", newPosition)
+      }
+    } else if (transaction.type === "SELL") {
+      if (existingPositionIndex >= 0) {
+        // Update existing position
+        const existingPosition = currentPortfolio[existingPositionIndex]
+        const newShares = existingPosition.shares - transaction.shares
+
+        if (newShares <= 0) {
+          // Remove position if shares become 0 or negative
+          currentPortfolio.splice(existingPositionIndex, 1)
+          console.log("✅ Removed position for", transaction.symbol)
+        } else {
+          // Update shares count
+          currentPortfolio[existingPositionIndex] = {
+            ...existingPosition,
+            shares: newShares,
+          }
+          console.log("✅ Updated position shares:", currentPortfolio[existingPositionIndex])
+        }
       }
     }
-  }
 
-  // Update the portfolio
-  await updateUserPortfolio(userId, portfolio)
+    console.log("📊 Portfolio after transaction processing:", currentPortfolio)
+
+    // Update the portfolio using the UpdateCommand
+    const updateResult = await updateUserPortfolio(userId, currentPortfolio)
+    console.log("✅ Portfolio update completed:", updateResult)
+  } catch (error) {
+    console.error("❌ Error updating portfolio from transaction:", error)
+    throw error
+  }
 }
