@@ -1,4 +1,4 @@
-# 📈 StockTracker - Advanced Stock Market Dashboard
+# 📈 StockPulse - Advanced Stock Market Dashboard
 
 A modern, full-stack stock market tracking application built with Next.js 15, AWS services, and real-time market data integration. Track your portfolio, analyze market trends, and make informed investment decisions with powerful analytics and intuitive visualizations.
 
@@ -6,6 +6,12 @@ A modern, full-stack stock market tracking application built with Next.js 15, AW
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange?style=for-the-badge&logo=amazon-aws)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css)
+
+<!-- 👉 Animated demo GIF -->
+<p align="center">
+  <img src="./public/stocktracker-demo.gif" alt="StockTracker Demo" width="800" />
+</p>
+
 
 ## ✨ Features
 
