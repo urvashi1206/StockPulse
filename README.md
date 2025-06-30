@@ -8,9 +8,7 @@ A modern, full-stack stock market tracking application built with Next.js 15, AW
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css)
 
 <!-- 👉 Animated demo GIF -->
-<p align="center">
-  <img src="./public/stocktracker-demo.gif" alt="StockTracker Demo" width="800" />
-</p>
+<img src="./public/stocktracker-demo.gif" alt="StockTracker Demo"/>
 
 
 ## ✨ Features
